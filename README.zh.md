@@ -1,6 +1,6 @@
 # Appender
 
-[简体中文](README.zh.md) [English](README.md)
+简体中文 | [English](README.md)
 
 ## 介绍
 
@@ -8,7 +8,8 @@
 
 ### `Appender`有什用？
 
-- 最典型的就是一些软件可以把一些数据流文件生成 exe 文件，比如一些 mp3 生成器，Flash 生成器，以及用来做动画的 S-demo。它们的作用就是将数据对 PE 进行捆绑;
+- 最典型的就是一些软件可以把一些数据流文件生成 exe 文件，比如一些 mp3 生成器，Flash 生成器，以及用来做动画的
+  S-demo。它们的作用就是将数据对 PE 进行捆绑;
 - 可以用于安装包制作，使用本程序将安装包附加至自定义程序，安装时释放资源即可;
 - 可以用于隐藏文件，比如将文件增加到图片等格式中;
 
@@ -32,7 +33,18 @@
 
 ### 增加资源
 
-`Appender.exe add 目标文件 资源文件 资源ID [新文件]`
+`Appender.exe add <目标文件> <资源文件> <资源ID> [新文件]`
+
+**参数说明**
+
+| 参数       | 短参数 | 描述     |
+|----------|-----|--------|
+| `<目标文件>` | 无   | 目标文件路径 |
+| `<资源文件>` | 无   | 资源文件路径 |
+| `<资源ID>` | 无   | 资源ID   |
+| `[新文件]`  | 无   | 新文件路径  |
+
+**示例**:
 
 - 基本使用: `Appender.exe add D:\Program.exe D:\file.zip Archive`
 - 输出新文件: `Appender.exe add D:\Program.exe D:\file.zip Archive D:\Program-new.exe`
@@ -40,8 +52,53 @@
 
 ### 释放资源
 
-`Appender.exe export 目标文件 资源ID 输出路径`
+`Appender.exe export <目标文件> <资源ID> <输出路径>`
+
+**参数说明**
+
+| 参数       | 短参数 | 描述     |
+|----------|-----|--------|
+| `<目标文件>` | 无   | 目标文件路径 |
+| `<资源ID>` | 无   | 资源ID   |
+| `<输出路径>` | 无   | 输出路径   |
+
+**示例**:
 
 - 指定输出路径(保留原文件名): `Appender.exe export D:\Program.exe Archive D:\`
 - 指定输出路径(自定义文件名): `Appender.exe export D:\Program.exe Archive D:\file.zip`
 - 输出到目标文件目录下: `Appender.exe export D:\Program.exe Archive file.zip`
+
+### 查看资源
+
+`Appender.exe list <目标文件>`
+
+**参数说明**
+
+| 参数     | 短参数  | 描述     |
+|--------|------|--------|
+| `目标文件` | 无    | 目标文件路径 |
+| `--id` | `-i` | 资源ID   |
+
+**示例**:
+
+- 查看所有资源: `Appender.exe list D:\Program.exe`
+- 查看指定资源: `Appender.exe list D:\Program.exe --id Archive`
+
+### 删除资源
+
+`Appender.exe remove <目标文件> <资源ID>`
+
+**参数说明**
+
+| 参数       | 短参数 | 描述     |
+|----------|-----|--------|
+| `<目标文件>` | 无   | 目标文件路径 |
+| `<资源ID>` | 无   | 资源ID   |
+
+**示例**:
+
+- 删除资源: `Appender.exe remove D:\Program.exe Archive`
+
+## 许可证 📝
+
+[Apache License 2.0](LICENSE)

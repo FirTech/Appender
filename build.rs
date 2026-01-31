@@ -1,10 +1,12 @@
 extern crate embed_resource;
 
-use std::process::Command;
-
 fn main() {
-    embed_resource::compile("./resource/resource.rc");
+    // 版本信息
+    embed_resource::compile("./resource/resource.rc", embed_resource::NONE)
+        .manifest_optional()
+        .expect("Add resource error");
 
-    Command::new("lib").args(&["YY_Thunks_for_WinXP.obj", "/out:YY_Thunks_for_WinXP.lib"]).status().unwrap();
-    println!("cargo:rustc-link-lib=static=YY_Thunks_for_WinXP");
+    // 兼容 Windows 7、Windows XP
+    #[cfg(not(debug_assertions))]
+    thunk::thunk();
 }

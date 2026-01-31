@@ -1,115 +1,107 @@
-use crate::core::{addResource, exportResource, ResourceHead, CompressMode, findResourcesConfig};
-use std::path::{PathBuf};
-use std::{fs};
+use crate::core::{
+    add_resource, export_resource, find_resources_config, remove_resource, CompressMode,
+    ResourceHead,
+};
+use std::fs;
+use std::io::Write;
+use std::path::PathBuf;
 
-lazy_static! {
-    static ref ID: String = "1".to_string();
-    static ref BASE_PATH: PathBuf = PathBuf::from(r"D:\Project\back-end\Appender\test");
-    static ref TARGET_FILE: PathBuf = BASE_PATH.join("Notepad.exe");
-    static ref SOURCE_FILE: PathBuf = BASE_PATH.join("hh.exe");
-    static ref OUTPUT_PATH: PathBuf = BASE_PATH.join("输出.exe");
-}
-
-/// 增加资源测试
+/// 测试 ResourceHead 序列化/反序列化
 #[test]
-fn addResourceTest() {
-    addResource((&*TARGET_FILE).as_ref(), (&*SOURCE_FILE).as_ref(), &ID, None, None).unwrap();
-    println!("资源增加成功");
+fn test_resourcehead_serialization() {
+    let head = ResourceHead::new("test001", 27, 27, "resource.bin", CompressMode::None);
+    let serialized = head.to_bytes().unwrap();
+    let deserialized = ResourceHead::from(&serialized).unwrap();
+
+    assert_eq!(head.id(), deserialized.id());
+    assert_eq!(head.name(), deserialized.name());
+    assert_eq!(head.compress(), deserialized.compress());
 }
 
-/// 释放资源测试
+/// 诊断测试：创建一个简单的文件，添加资源、查找资源、导出资源、删除资源
 #[test]
-fn exportResourceTest() {
-    exportResource((&*TARGET_FILE).as_ref(), &ID, OUTPUT_PATH.as_ref()).unwrap();
-    println!("资源释放成功");
-}
+fn diagnostic_test() {
+    // 创建测试目录
+    let test_dir = PathBuf::from(r"D:\Project\back-end\Rust\Appender\test_diag");
+    fs::create_dir_all(&test_dir).unwrap();
 
-/// 自动测试
-#[test]
-fn autoTest() {
-    let testPath = TARGET_FILE.parent().unwrap().join("test");
+    // 创建一个简单的目标文件
+    let target_file = test_dir.join("target.bin");
+    let mut f = fs::File::create(&target_file).unwrap();
+    f.write_all(b"Hello, this is a test file!").unwrap();
+    f.flush().unwrap();
+    drop(f);
 
-    fs::remove_dir_all(&testPath);
-    fs::create_dir(&testPath);
+    // 验证原始文件大小
+    let original_size = fs::metadata(&target_file).unwrap().len();
+    assert_eq!(original_size, 27);
 
-    let testTargetFile = testPath.join(TARGET_FILE.file_name().unwrap());
-    let testOutputFile = testPath.join(OUTPUT_PATH.file_name().unwrap());
-    fs::copy(TARGET_FILE.clone(), &testTargetFile);
+    // 创建资源文件
+    let source_file = test_dir.join("resource.bin");
+    let resource_data = b"This is the resource data!";
+    let mut f = fs::File::create(&source_file).unwrap();
+    f.write_all(resource_data).unwrap();
+    f.flush().unwrap();
+    drop(f);
 
-    addResource((&*testTargetFile).as_ref(), (&*SOURCE_FILE).as_ref(), &ID, None, None).unwrap();
-    exportResource((&*testTargetFile).as_ref(), &ID, &*testPath).unwrap();
-    println!("测试成功");
-}
+    // 验证资源文件大小
+    let source_size = fs::metadata(&source_file).unwrap().len();
+    assert_eq!(source_size, resource_data.len() as u64);
 
-extern crate test;
-use test::Bencher;
-/// 性能测试 - 释放资源
-#[bench]
-fn bench_Test(b: &mut Bencher) {
-    b.iter(|| exportResourceTest());
-}
+    println!("=== 步骤 1: 创建文件 ===");
+    println!("  目标文件: {:?}", target_file.file_name());
+    println!("  资源文件: {:?}", source_file.file_name());
+    println!("  目标文件大小: {} 字节", original_size);
+    println!("  资源数据大小: {} 字节", resource_data.len());
 
-/// 实例测试
-#[test]
-fn Test() {
-    // let defaultResourceHead = ResourceHead::default();
+    // 步骤 2: 添加资源
+    println!("\n=== 步骤 2: 添加资源 ===");
+    let resource_id = "test001";
+    add_resource(&target_file, &source_file, resource_id, None, None).unwrap();
 
-    // let resource = ResourceHead::new("1", 123, "aaa.exe",CompressMode::None);
-    let resource = ResourceHead::new("1", 39278156, 100,"day01_21.zip", CompressMode::None);
-    // println!("{:?}", resource);
+    let size_after_add = fs::metadata(&target_file).unwrap().len();
+    println!("  ✓ 添加成功 (ID: {})", resource_id);
+    println!("  文件大小: {} -> {} 字节 (+{})", original_size, size_after_add, size_after_add - original_size);
 
-    // let bin = &resource.to_bytes().unwrap();
-    // println!("{:?}", bin);
+    // 步骤 3: 查找资源
+    println!("\n=== 步骤 3: 查找资源 ===");
+    let configs = find_resources_config(&target_file, |_pos, config| {
+        println!("  - ID: {}, 名称: {}, 大小: {} 字节",
+            config.id().trim(),
+            config.name().trim(),
+            config.size().trim()
+        );
+    })
+    .unwrap();
+    println!("  ✓ 共找到 {} 个资源", configs.len());
+    assert!(!configs.is_empty(), "应该找到至少一个资源");
 
-    // Length
-    // println!("{:?}", bin.len());
-    // println!("{}", defaultResourceHead.getLen());
+    // 步骤 4: 导出资源
+    println!("\n=== 步骤 4: 导出资源 ===");
+    let output_file = test_dir.join("exported.bin");
+    export_resource(&target_file, resource_id, &output_file).unwrap();
 
-    // println!("{:?}", format!("{:^length$}", "abcd", length = 255).chars().count());
-    // println!("{:?}", format!("{:^length$}", "我我我我w", length = 255).chars().count());
-    println!("{:?}", format!("{:^length$}", "abcd", length = 5).as_bytes());
-    let str = "abcd";
-    println!("{:?}", format!("{:^length$}", str, length = 5 - str.len() + str.chars().count()).as_bytes());
-}
+    let exported_data = fs::read(&output_file).unwrap();
+    let original_data = fs::read(&source_file).unwrap();
+    assert_eq!(exported_data, original_data);
+    println!("  ✓ 导出成功，内容验证通过");
 
-use serde::{Serialize, Deserialize};
-use crate::util::{decompressFile, compressionFile};
+    // 步骤 5: 删除资源
+    println!("\n=== 步骤 5: 删除资源 ===");
+    let size_before_remove = fs::metadata(&target_file).unwrap().len();
+    remove_resource(&target_file, resource_id, None).unwrap();
 
-#[test]
-fn test2() {
-    // println!("{:?}", getResourceList(&*PathBuf::from(r"C:\Users\Administrator.W10-20201229857\Desktop\新建文件夹\test\Notepad.exe")));
+    let size_after_remove = fs::metadata(&target_file).unwrap().len();
+    let configs_after_remove = find_resources_config(&target_file, |_pos, _config| {}).unwrap();
+    assert_eq!(configs_after_remove.len(), 0);
 
-    let aa = Astruct {
-        Name: "".to_string(),
-        CompressMode: CompressMode::Compress,
-    };
-    println!("{:?}", bincode::serialize(&aa));
-}
+    println!("  ✓ 删除成功");
+    println!("  文件大小: {} -> {} 字节 (-{})", size_before_remove, size_after_remove, size_before_remove - size_after_remove);
+    println!("  ✓ 验证通过：文件中已无资源");
 
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Astruct {
-    Name: String,
-    CompressMode: CompressMode,
-}
-
-// 压缩、解压 测试
-#[test]
-fn CompressionTest() {
-    let sourcePath = PathBuf::from(r"D:\Project\back-end\Appender\test\hh.exe");
-    let targetPath = PathBuf::from(r"D:\Project\back-end\Appender\test\temp");
-    let dePath = PathBuf::from(r"D:\Project\back-end\Appender\test\temp.exe");
-
-    println!("=============压缩=============");
-    compressionFile(&*sourcePath, &*targetPath, 5);
-    println!("=============解压=============");
-    decompressFile(&*targetPath, &*dePath);
-}
-
-#[test]
-fn test4(){
-    findResourcesConfig(&*PathBuf::from(r"D:\Project\FirPE\Win10PE\test.wim"), |startSize: usize,config: &ResourceHead| {
-        println!("{:?}", config);
-    });
-    println!("============");
+    // 步骤 6: 清理测试目录
+    println!("\n=== 步骤 6: 清理 ===");
+    fs::remove_dir_all(&test_dir).unwrap();
+    println!("  ✓ 测试目录已删除");
+    println!("\n所有测试通过!");
 }
